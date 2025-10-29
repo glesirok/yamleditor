@@ -2,9 +2,10 @@ package path
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/dlclark/regexp2"
 )
 
 // Parse 解析路径字符串
@@ -183,7 +184,7 @@ func parseSelector(selectorStr string) (*Selector, error) {
 			}
 
 			// 校验正则合法性
-			if _, err := regexp.Compile(pattern); err != nil {
+			if _, err := regexp2.Compile(pattern, 0); err != nil {
 				return nil, fmt.Errorf("invalid regex pattern: %w", err)
 			}
 

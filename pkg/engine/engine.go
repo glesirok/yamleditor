@@ -2,8 +2,8 @@ package engine
 
 import (
 	"fmt"
-	"regexp"
 
+	"github.com/dlclark/regexp2"
 	"gopkg.in/yaml.v3"
 	"yamleditor/pkg/path"
 )
@@ -172,7 +172,7 @@ func (e *Engine) regexReplace(root *yaml.Node, rule *Rule) error {
 		return fmt.Errorf("pattern is required for regex_replace")
 	}
 
-	re, err := regexp.Compile(rule.Pattern)
+	re, err := regexp2.Compile(rule.Pattern, 0)
 	if err != nil {
 		return fmt.Errorf("compile regex: %w", err)
 	}
@@ -187,7 +187,13 @@ func (e *Engine) regexReplace(root *yaml.Node, rule *Rule) error {
 		if node.Kind != yaml.ScalarNode {
 			continue
 		}
-		node.Value = re.ReplaceAllString(node.Value, replacement)
+
+		// regexp2.Replace: -1, -1 表示替换所有匹配
+		result, err := re.Replace(node.Value, replacement, -1, -1)
+		if err != nil {
+			return fmt.Errorf("regex replace: %w", err)
+		}
+		node.Value = result
 	}
 
 	return nil

@@ -2,8 +2,8 @@ package path
 
 import (
 	"fmt"
-	"regexp"
 
+	"github.com/dlclark/regexp2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -151,7 +151,11 @@ func (n *Navigator) matchCondition(node *yaml.Node, cond *Condition) bool {
 				return valueNode.Value == fmt.Sprint(cond.Value)
 			case OpRegex:
 				pattern := cond.Value.(string)
-				matched, err := regexp.MatchString(pattern, valueNode.Value)
+				re, err := regexp2.Compile(pattern, 0)
+				if err != nil {
+					return false
+				}
+				matched, err := re.MatchString(valueNode.Value)
 				return err == nil && matched
 			}
 		}

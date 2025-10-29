@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,6 +39,13 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 		return fmt.Errorf("read file: %w", err)
 	}
 
+	// 检测并移除 UTF-8 BOM
+	hasBOM := false
+	if bytes.HasPrefix(data, []byte{0xEF, 0xBB, 0xBF}) {
+		hasBOM = true
+		data = data[3:] // 移除BOM，传递给yaml解析器
+	}
+
 	// 解析 YAML
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {
@@ -55,10 +63,19 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 		}
 	}
 
-	// 序列化 YAML
-	output, err := yaml.Marshal(&root)
-	if err != nil {
+	// 序列化 YAML（保持2空格缩进）
+	var buf strings.Builder
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&root); err != nil {
 		return fmt.Errorf("marshal yaml: %w", err)
+	}
+	encoder.Close()
+	output := []byte(buf.String())
+
+	// 如果原文件有 BOM，添加回去
+	if hasBOM {
+		output = append([]byte{0xEF, 0xBB, 0xBF}, output...)
 	}
 
 	if dryRun {
