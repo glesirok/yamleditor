@@ -24,6 +24,10 @@ Godeps/
 .DS_Store
 Thumbs.db
 
+# Test input
+*.txt
+rules.yaml
+
 # Test output
 *.out
 
@@ -31,4 +35,4 @@ Thumbs.db
 .env
 
 *.db
-/rpdoc/
+
