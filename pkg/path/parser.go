@@ -2,6 +2,7 @@ package path
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -82,16 +83,21 @@ func parseSegment(part string) (*Segment, error) {
 	}, nil
 }
 
-// parseArraySegment 解析数组片段，如 "containers[name=foo]"
+// parseArraySegment 解析数组片段，如 "containers[name=foo]" 或 "env[name=@^SW_.*$@]"
 func parseArraySegment(part string) (*Segment, error) {
 	bracketStart := strings.Index(part, "[")
-	bracketEnd := strings.LastIndex(part, "]")
-
-	if bracketStart == -1 || bracketEnd == -1 || bracketEnd < bracketStart {
-		return nil, fmt.Errorf("invalid bracket syntax")
+	if bracketStart == -1 {
+		return nil, fmt.Errorf("no opening bracket")
 	}
 
 	field := part[:bracketStart]
+
+	// 查找配对的 ]，跳过 @...@ 内部的 ]
+	bracketEnd := findClosingBracket(part, bracketStart+1)
+	if bracketEnd == -1 {
+		return nil, fmt.Errorf("no closing bracket")
+	}
+
 	selectorStr := part[bracketStart+1 : bracketEnd]
 
 	selector, err := parseSelector(selectorStr)
@@ -106,7 +112,31 @@ func parseArraySegment(part string) (*Segment, error) {
 	}, nil
 }
 
+// findClosingBracket 查找配对的 ]，忽略 @...@ 内部的 ]
+func findClosingBracket(s string, start int) int {
+	inRegex := false
+
+	for i := start; i < len(s); i++ {
+		ch := s[i]
+
+		if ch == '@' {
+			inRegex = !inRegex
+		}
+
+		if ch == ']' && !inRegex {
+			return i
+		}
+	}
+
+	return -1 // 未找到
+}
+
 // parseSelector 解析选择器
+// 支持语法：
+//   - * 或 ? : 通配符
+//   - 数字 : 索引
+//   - field=value : 精确匹配
+//   - field=@pattern@ : 正则匹配
 func parseSelector(selectorStr string) (*Selector, error) {
 	// 通配符
 	if selectorStr == "*" {
@@ -130,19 +160,50 @@ func parseSelector(selectorStr string) (*Selector, error) {
 		}, nil
 	}
 
-	// 条件，如 "name=foo"
+	// 条件：field=value 或 field=@pattern@
 	if strings.Contains(selectorStr, "=") {
 		parts := strings.SplitN(selectorStr, "=", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid condition syntax")
 		}
 
+		field := parts[0]
+		value := parts[1]
+
+		if field == "" {
+			return nil, fmt.Errorf("field name cannot be empty")
+		}
+
+		// 检测是否是正则（以 @ 包裹）
+		if strings.HasPrefix(value, "@") && strings.HasSuffix(value, "@") {
+			pattern := strings.Trim(value, "@")
+
+			if pattern == "" {
+				return nil, fmt.Errorf("regex pattern cannot be empty")
+			}
+
+			// 校验正则合法性
+			if _, err := regexp.Compile(pattern); err != nil {
+				return nil, fmt.Errorf("invalid regex pattern: %w", err)
+			}
+
+			return &Selector{
+				Type: SelectorTypeCondition,
+				Condition: &Condition{
+					Field: field,
+					Op:    OpRegex,
+					Value: pattern,
+				},
+			}, nil
+		}
+
+		// 精确匹配
 		return &Selector{
 			Type: SelectorTypeCondition,
 			Condition: &Condition{
-				Field: parts[0],
+				Field: field,
 				Op:    OpEqual,
-				Value: parts[1],
+				Value: value,
 			},
 		}, nil
 	}

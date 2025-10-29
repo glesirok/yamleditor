@@ -15,8 +15,6 @@ type Navigator struct{}
 func (n *Navigator) Find(root *yaml.Node, path *Path) ([]*yaml.Node, error) {
 	return n.findRecursive(root, path.Segments, 0)
 }
-
-// findRecursive 递归查找
 func (n *Navigator) findRecursive(node *yaml.Node, segments []*Segment, segmentIdx int) ([]*yaml.Node, error) {
 	// 到达路径末尾
 	if segmentIdx >= len(segments) {
@@ -151,98 +149,13 @@ func (n *Navigator) matchCondition(node *yaml.Node, cond *Condition) bool {
 			switch cond.Op {
 			case OpEqual:
 				return valueNode.Value == fmt.Sprint(cond.Value)
-			case OpNotEqual:
-				return valueNode.Value != fmt.Sprint(cond.Value)
+			case OpRegex:
+				pattern := cond.Value.(string)
+				matched, err := regexp.MatchString(pattern, valueNode.Value)
+				return err == nil && matched
 			}
 		}
 	}
 
 	return false
-}
-
-// FindWithWhere 使用 where 条件查找节点
-// 用于 delete 操作的复杂条件匹配
-func (n *Navigator) FindWithWhere(root *yaml.Node, path *Path, where *WhereCondition) ([]*yaml.Node, error) {
-	// 先用路径找到候选节点
-	candidates, err := n.Find(root, path)
-	if err != nil {
-		return nil, err
-	}
-
-	if where == nil {
-		return candidates, nil
-	}
-
-	// 用 where 条件过滤
-	var results []*yaml.Node
-	for _, node := range candidates {
-		if n.matchWhere(node, where) {
-			results = append(results, node)
-		}
-	}
-
-	return results, nil
-}
-
-// WhereCondition 表示 where 条件
-type WhereCondition struct {
-	NameRegex  string   // 正则匹配
-	NameNotIn  []string // 排除列表
-	NameIn     []string // 包含列表
-}
-
-// matchWhere 检查节点是否匹配 where 条件
-func (n *Navigator) matchWhere(node *yaml.Node, where *WhereCondition) bool {
-	if node.Kind != yaml.MappingNode {
-		return false
-	}
-
-	// 查找 name 字段
-	var nameValue string
-	for i := 0; i < len(node.Content); i += 2 {
-		keyNode := node.Content[i]
-		valueNode := node.Content[i+1]
-
-		if keyNode.Value == "name" {
-			nameValue = valueNode.Value
-			break
-		}
-	}
-
-	if nameValue == "" {
-		return false
-	}
-
-	// 检查正则
-	if where.NameRegex != "" {
-		matched, err := regexp.MatchString(where.NameRegex, nameValue)
-		if err != nil || !matched {
-			return false
-		}
-	}
-
-	// 检查排除列表
-	if len(where.NameNotIn) > 0 {
-		for _, excluded := range where.NameNotIn {
-			if nameValue == excluded {
-				return false
-			}
-		}
-	}
-
-	// 检查包含列表
-	if len(where.NameIn) > 0 {
-		found := false
-		for _, included := range where.NameIn {
-			if nameValue == included {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	return true
 }

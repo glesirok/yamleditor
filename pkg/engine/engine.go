@@ -70,8 +70,8 @@ func (e *Engine) delete(root *yaml.Node, rule *Rule) error {
 		return fmt.Errorf("parse path: %w", err)
 	}
 
-	// 使用 where 条件查找
-	nodes, err := e.navigator.FindWithWhere(root, p, rule.Where)
+	// 查找节点
+	nodes, err := e.navigator.Find(root, p)
 	if err != nil {
 		return fmt.Errorf("find nodes: %w", err)
 	}

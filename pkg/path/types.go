@@ -38,8 +38,8 @@ type Condition struct {
 type Operator int
 
 const (
-	OpEqual    Operator = iota // =
-	OpNotEqual                 // !=
+	OpEqual Operator = iota // = 精确匹配
+	OpRegex                 // = 正则匹配（值为 @pattern@）
 )
 
 // Path 表示解析后的完整路径
