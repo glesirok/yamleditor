@@ -7,7 +7,6 @@ type ActionType string
 
 const (
 	ActionReplace      ActionType = "replace"
-	ActionSet          ActionType = "set"
 	ActionDelete       ActionType = "delete"
 	ActionRegexReplace ActionType = "regex_replace"
 )

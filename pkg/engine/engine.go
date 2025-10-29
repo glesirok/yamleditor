@@ -24,8 +24,6 @@ func (e *Engine) Apply(root *yaml.Node, rule *Rule) error {
 	switch rule.Action {
 	case ActionReplace:
 		return e.replace(root, rule)
-	case ActionSet:
-		return e.set(root, rule)
 	case ActionDelete:
 		return e.delete(root, rule)
 	case ActionRegexReplace:
@@ -35,7 +33,7 @@ func (e *Engine) Apply(root *yaml.Node, rule *Rule) error {
 	}
 }
 
-// replace 替换整个节点
+// replace 替换节点（支持对象、字段、标量）
 func (e *Engine) replace(root *yaml.Node, rule *Rule) error {
 	p, err := path.Parse(rule.Path)
 	if err != nil {
@@ -51,7 +49,7 @@ func (e *Engine) replace(root *yaml.Node, rule *Rule) error {
 		return fmt.Errorf("no nodes found")
 	}
 
-	// 将 Value 转换为 yaml.Node
+	// 将 Value 编码为 yaml.Node
 	newNode := &yaml.Node{}
 	if err := newNode.Encode(rule.Value); err != nil {
 		return fmt.Errorf("encode value: %w", err)
@@ -60,50 +58,6 @@ func (e *Engine) replace(root *yaml.Node, rule *Rule) error {
 	// 替换所有匹配的节点
 	for _, node := range nodes {
 		*node = *newNode
-	}
-
-	return nil
-}
-
-// set 修改节点的某个字段值
-func (e *Engine) set(root *yaml.Node, rule *Rule) error {
-	p, err := path.Parse(rule.Path)
-	if err != nil {
-		return fmt.Errorf("parse path: %w", err)
-	}
-
-	nodes, err := e.navigator.Find(root, p)
-	if err != nil {
-		return fmt.Errorf("find nodes: %w", err)
-	}
-
-	if len(nodes) == 0 {
-		return fmt.Errorf("no nodes found")
-	}
-
-	// 修改值
-	for _, node := range nodes {
-		switch v := rule.Value.(type) {
-		case string:
-			node.Value = v
-			node.Kind = yaml.ScalarNode
-			node.Tag = "!!str"
-		case int:
-			node.Value = fmt.Sprint(v)
-			node.Kind = yaml.ScalarNode
-			node.Tag = "!!int"
-		case bool:
-			node.Value = fmt.Sprint(v)
-			node.Kind = yaml.ScalarNode
-			node.Tag = "!!bool"
-		default:
-			// 复杂类型，用 Encode
-			newNode := &yaml.Node{}
-			if err := newNode.Encode(v); err != nil {
-				return fmt.Errorf("encode value: %w", err)
-			}
-			*node = *newNode
-		}
 	}
 
 	return nil

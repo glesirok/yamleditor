@@ -42,7 +42,7 @@ func Validate(rule *engine.Rule) error {
 	}
 
 	switch rule.Action {
-	case engine.ActionReplace, engine.ActionSet:
+	case engine.ActionReplace:
 		if rule.Value == nil {
 			return fmt.Errorf("value is required for action %s", rule.Action)
 		}
