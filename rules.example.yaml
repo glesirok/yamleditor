@@ -1,0 +1,23 @@
+rules:
+  # 替换整个对象（使用正则匹配名称）
+  - action: replace
+    path: spec.template.spec.initContainers[name=@.*xxx.*@]
+    value:
+      name: xxx
+      image: xxx
+      command: [sh, -c, "cp -r xxx xxx"]
+
+  # 修改字段值（精确匹配）
+  - action: replace
+    path: spec.template.spec.volumes[name=xxx].name
+    value: xxx
+
+  # 正则替换字符串
+  - action: regex_replace
+    path: spec.template.spec.containers[*].env[name=xxx].value
+    pattern: 'xxx'
+    value: 'xxx'
+
+  # 条件删除（使用正则负向断言）
+  - action: delete
+    path: spec.template.spec.containers[*].env[name=@^xxx_(?!(foo1|foo2)$).*@]
