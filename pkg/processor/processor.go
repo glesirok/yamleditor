@@ -58,7 +58,7 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 			// 某些规则可能找不到节点（比如文件中没有那个字段），这是正常的
 			// 只在非预期错误时报错
 			if !strings.Contains(err.Error(), "not found") {
-				return fmt.Errorf("apply rule %d: %w", i, err)
+				return fmt.Errorf("apply rule %d, path:{%s}: %w", i, r.Path, err)
 			}
 		}
 	}
