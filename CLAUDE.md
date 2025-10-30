@@ -165,3 +165,72 @@
 
 ## 本项目简介
 本项目的目的是批量修改k8s yaml文件，将运维人员从重复的机械操作中解放出来
+详情可以从README.md获取
+
+## 核心架构
+
+**数据流向:**
+```
+规则文件 → Loader → Engine → Navigator → YAML树 → 修改后的YAML
+```
+
+**包结构与职责:**
+
+1. **cmd/yamleditor/main.go** - CLI入口(使用cobra)
+   - 解析命令行参数: -c (配置文件), -i (输入), -o (输出), --dry-run, --backup
+   - 委托给 processor 处理
+
+2. **pkg/processor** - 批量文件处理协调器
+   - `ProcessFile()`: 单文件处理,包含BOM检测/保留逻辑
+   - `ProcessDirectory()`: 递归遍历 .yaml/.yml 文件
+   - 通过 engine 应用规则
+
+3. **pkg/rule** - 规则加载和校验
+   - `LoadFromFile()`: 解析 YAML 配置为 `[]*engine.Rule`
+   - `Validate()`: 校验规则合法性(路径必填,值类型匹配动作)
+
+4. **pkg/engine** - 核心修改引擎
+   - `Apply()`: 根据 action 分发到 replace/delete/regexReplace
+   - `replace()`: 导航路径,编码新值,更新节点指针
+   - `delete()`: 递归树遍历,从父节点删除目标节点
+   - `regexReplace()`: 对标量值应用 regexp2 正则替换
+
+5. **pkg/path** - 路径解析和YAML导航
+   - **parser.go**: 将路径字符串解析为 `Path` (Segment列表)
+     - 处理括号嵌套和 `@...@` 正则分隔符
+   - **navigator.go**: 使用解析后的路径遍历 `yaml.Node` 树
+     - `Find()`: 返回所有匹配节点(支持通配符)
+     - `matchCondition()`: 精确或正则字段匹配
+
+**关键数据结构:**
+
+- `Path`: Segment 的有序列表
+- `Segment`: 字段访问 或 数组选择器(通配符/索引/条件)
+- `Condition`: Field + Operator(equal/regex) + Value
+- `Rule`: Action + Path + Value/Pattern
+
+**核心设计决策:**
+
+1. **指针更新**: `replace()` 使用 `*node = *newNode` 原地更新 yaml.Node
+2. **BOM保留**: YAML解析前检测UTF-8 BOM(`0xEF 0xBB 0xBF`),编码后恢复
+3. **错误处理**: "not found"错误被静默忽略(批量处理时规则可能不适用所有文件)
+4. **regexp2**: 使用 regexp2 而非标准库 regexp,支持高级模式(负向预查等)
+
+## 开发注意事项
+
+添加新功能时需考虑:
+- **新动作类型**: 在 `engine/types.go` 添加 ActionType,在 `engine/engine.go` 实现处理器
+- **新路径语法**: 更新 `path/parser.go` 的 parseSelector() 和 `path/navigator.go` 的 findArray()
+- **错误处理**: 使用 `fmt.Errorf("context: %w", err)` 包装错误; processor 会忽略 "not found" 错误
+
+## 关键依赖
+
+- `gopkg.in/yaml.v3` - YAML解析/编码,支持节点级操作
+- `github.com/dlclark/regexp2` - 高级正则(支持lookahead/lookbehind)
+- `github.com/spf13/cobra` - CLI框架
+
+## 当前状态说明
+
+- 代码库中暂无测试文件
+- YAML缩进硬编码为2空格 (`encoder.SetIndent(2)`)
+- 文件权限默认: 文件0644, 目录0755

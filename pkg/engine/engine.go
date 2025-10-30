@@ -46,7 +46,7 @@ func (e *Engine) replace(root *yaml.Node, rule *Rule) error {
 	}
 
 	if len(nodes) == 0 {
-		return fmt.Errorf("no nodes found")
+		return ErrNotFoundNodes
 	}
 
 	// 将 Value 编码为 yaml.Node
@@ -165,7 +165,7 @@ func (e *Engine) regexReplace(root *yaml.Node, rule *Rule) error {
 	}
 
 	if len(nodes) == 0 {
-		return fmt.Errorf("no nodes found")
+		return ErrNotFoundNodes
 	}
 
 	if rule.Pattern == "" {
