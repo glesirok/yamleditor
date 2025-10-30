@@ -94,12 +94,25 @@ func processFile(proc *processor.Processor, inputFile, outputFile string) error 
 }
 
 func processDirectory(proc *processor.Processor, inputDir, outputDir string) error {
-	if err := proc.ProcessDirectory(inputDir, outputDir, dryRun, backup); err != nil {
+	result, err := proc.ProcessDirectory(inputDir, outputDir, dryRun, backup)
+	if err != nil {
 		return err
 	}
 
 	if !dryRun {
-		fmt.Println("✓ All files processed successfully")
+		fmt.Printf("\n=== 处理完成 ===\n")
+		fmt.Printf("总计: %d | 成功: %d | 失败: %d\n",
+			result.TotalFiles, result.SuccessFiles, len(result.FailedFiles))
+
+		if len(result.FailedFiles) > 0 {
+			fmt.Println("\n失败文件:")
+			for _, f := range result.FailedFiles {
+				fmt.Printf("  ✗ %s\n    原因: %v\n", f.Path, f.Error)
+			}
+			return nil
+		}
+
+		fmt.Println("✓ 所有文件处理成功")
 	}
 	return nil
 }

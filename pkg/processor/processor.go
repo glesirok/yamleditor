@@ -12,6 +12,19 @@ import (
 	"yamleditor/pkg/rule"
 )
 
+// ProcessResult 批量处理结果
+type ProcessResult struct {
+	TotalFiles   int
+	SuccessFiles int
+	FailedFiles  []FailedFile
+}
+
+// FailedFile 失败文件信息
+type FailedFile struct {
+	Path  string
+	Error error
+}
+
 // Processor 批量处理 YAML 文件
 type Processor struct {
 	rules  []*engine.Rule
@@ -55,11 +68,8 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 	// 应用所有规则
 	for i, r := range p.rules {
 		if err := p.engine.Apply(&root, r); err != nil {
-			// 某些规则可能找不到节点（比如文件中没有那个字段），这是正常的
-			// 只在非预期错误时报错
-			if !strings.Contains(err.Error(), "not found") {
-				return fmt.Errorf("apply rule %d, path:{%s}: %w", i, r.Path, err)
-			}
+			// 由规则logic决定是否忽略错误
+			return fmt.Errorf("apply rule %d, path:{%s}: %w", i, r.Path, err)
 		}
 	}
 
@@ -94,17 +104,20 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 }
 
 // ProcessDirectory 批量处理目录下的所有 YAML 文件
-func (p *Processor) ProcessDirectory(inputDir, outputDir string, dryRun, backup bool) error {
+func (p *Processor) ProcessDirectory(inputDir, outputDir string, dryRun, backup bool) (*ProcessResult, error) {
+	result := &ProcessResult{}
+
 	// 确保输出目录存在
 	if !dryRun && outputDir != "" {
 		if err := os.MkdirAll(outputDir, 0755); err != nil {
-			return fmt.Errorf("create output dir: %w", err)
+			return nil, fmt.Errorf("create output dir: %w", err)
 		}
 	}
 
 	// 遍历目录
-	return filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
+	walkErr := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			// filepath.Walk 本身的错误（如权限问题），直接返回终止遍历
 			return err
 		}
 
@@ -113,10 +126,16 @@ func (p *Processor) ProcessDirectory(inputDir, outputDir string, dryRun, backup 
 			return nil
 		}
 
+		result.TotalFiles++
+
 		// 计算输出路径
 		relPath, err := filepath.Rel(inputDir, path)
 		if err != nil {
-			return err
+			result.FailedFiles = append(result.FailedFiles, FailedFile{
+				Path:  path,
+				Error: fmt.Errorf("compute relative path: %w", err),
+			})
+			return nil // 继续处理下一个文件
 		}
 
 		var outputPath string
@@ -130,18 +149,34 @@ func (p *Processor) ProcessDirectory(inputDir, outputDir string, dryRun, backup 
 		if backup && !dryRun && outputDir == "" {
 			backupPath := path + ".bak"
 			if err := copyFile(path, backupPath); err != nil {
-				return fmt.Errorf("backup file: %w", err)
+				result.FailedFiles = append(result.FailedFiles, FailedFile{
+					Path:  path,
+					Error: fmt.Errorf("backup file: %w", err),
+				})
+				return nil // 继续处理下一个文件
 			}
 		}
 
 		// 处理文件
 		fmt.Printf("Processing: %s\n", path)
 		if err := p.ProcessFile(path, outputPath, dryRun); err != nil {
-			return fmt.Errorf("process %s: %w", path, err)
+			result.FailedFiles = append(result.FailedFiles, FailedFile{
+				Path:  path,
+				Error: err,
+			})
+			return nil // 继续处理下一个文件
 		}
 
+		result.SuccessFiles++
 		return nil
 	})
+
+	// 如果 Walk 本身出错（系统级错误），返回 error
+	if walkErr != nil {
+		return result, walkErr
+	}
+
+	return result, nil
 }
 
 // copyFile 复制文件
