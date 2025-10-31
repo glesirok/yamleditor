@@ -11,6 +11,7 @@ rules:
   - action: replace
     path: spec.template.spec.volumes[name=xxx].name
     value: xxx
+    continue_on_not_found: true
 
   # 正则替换字符串
   - action: regex_replace

@@ -46,6 +46,9 @@ func (e *Engine) replace(root *yaml.Node, rule *Rule) error {
 	}
 
 	if len(nodes) == 0 {
+		if rule.ContinueOnNotFound {
+			return nil
+		}
 		return ErrNotFoundNodes
 	}
 
@@ -77,7 +80,10 @@ func (e *Engine) delete(root *yaml.Node, rule *Rule) error {
 	}
 
 	if len(nodes) == 0 {
-		return nil // 没有要删除的节点，不报错
+		if rule.ContinueOnNotFound {
+			return nil
+		}
+		return ErrNotFoundNodes
 	}
 
 	// 删除节点需要从父节点操作
@@ -165,6 +171,9 @@ func (e *Engine) regexReplace(root *yaml.Node, rule *Rule) error {
 	}
 
 	if len(nodes) == 0 {
+		if rule.ContinueOnNotFound {
+			return nil
+		}
 		return ErrNotFoundNodes
 	}
 

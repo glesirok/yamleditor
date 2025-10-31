@@ -85,6 +85,29 @@ yamleditor -c rules.yaml -i ./yamls/ --backup
 
 ## 操作类型
 
+
+支持以下可选字段：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `continue_on_not_found` | bool | false | 当路径未找到节点时是否继续处理（不报错） |
+
+**使用场景**: 批量处理多个文件时，某些规则可能不适用于所有文件。设置 `continue_on_not_found: true` 可忽略"未找到"错误，继续处理其他规则。
+
+```yaml
+rules:
+  # 找不到时继续（适用于可选字段）
+  - action: replace
+    path: "metadata.labels.optional-label"
+    value: "new-value"
+    continue_on_not_found: true
+
+  # 找不到时报错（默认行为，适用于必须存在的字段）
+  - action: replace
+    path: "metadata.name"
+    value: "new-name"
+```
+
 ### replace
 替换节点（支持对象、字段、标量）:
 ```yaml
