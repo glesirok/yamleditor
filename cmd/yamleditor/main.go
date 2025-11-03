@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"yamleditor/pkg/processor"
+	"github.com/glesirok/yamleditor/pkg/processor"
 )
 
 var (

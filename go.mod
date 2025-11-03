@@ -1,4 +1,4 @@
-module yamleditor
+module github.com/glesirok/yamleditor
 
 go 1.24.5
 

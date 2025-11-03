@@ -5,7 +5,7 @@ import (
 
 	"github.com/dlclark/regexp2"
 	"gopkg.in/yaml.v3"
-	"yamleditor/pkg/path"
+	"github.com/glesirok/yamleditor/pkg/path"
 )
 
 // Engine 执行 YAML 修改操作

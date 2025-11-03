@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"gopkg.in/yaml.v3"
-	"yamleditor/pkg/engine"
+	"github.com/glesirok/yamleditor/pkg/engine"
 )
 
 // Config 表示规则配置文件

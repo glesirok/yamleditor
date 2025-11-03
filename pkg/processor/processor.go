@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-	"yamleditor/pkg/engine"
-	"yamleditor/pkg/rule"
+	"github.com/glesirok/yamleditor/pkg/engine"
+	"github.com/glesirok/yamleditor/pkg/rule"
 )
 
 // ProcessResult 批量处理结果
