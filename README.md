@@ -1,6 +1,6 @@
 # yamleditor
 
-Kubernetes YAML 批量编辑工具,使用配置化规则进行修改。
+Kubernetes YAML 编辑工具,使用配置化规则进行批量修改。
 
 ## 特性
 
