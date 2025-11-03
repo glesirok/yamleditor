@@ -95,6 +95,13 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 		return nil
 	}
 
+	// 确保输出目录存在
+	if outputDir := filepath.Dir(outputPath); outputDir != "." {
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return fmt.Errorf("create output dir: %w", err)
+		}
+	}
+
 	// 写入文件
 	if err := os.WriteFile(outputPath, output, 0644); err != nil {
 		return fmt.Errorf("write file: %w", err)
@@ -106,13 +113,6 @@ func (p *Processor) ProcessFile(inputPath, outputPath string, dryRun bool) error
 // ProcessDirectory 批量处理目录下的所有 YAML 文件
 func (p *Processor) ProcessDirectory(inputDir, outputDir string, dryRun, backup bool) (*ProcessResult, error) {
 	result := &ProcessResult{}
-
-	// 确保输出目录存在
-	if !dryRun && outputDir != "" {
-		if err := os.MkdirAll(outputDir, 0755); err != nil {
-			return nil, fmt.Errorf("create output dir: %w", err)
-		}
-	}
 
 	// 遍历目录
 	walkErr := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
