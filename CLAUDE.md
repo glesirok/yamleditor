@@ -213,15 +213,13 @@
 
 1. **指针更新**: `replace()` 使用 `*node = *newNode` 原地更新 yaml.Node
 2. **BOM保留**: YAML解析前检测UTF-8 BOM(`0xEF 0xBB 0xBF`),编码后恢复
-3. **错误处理**: "not found"错误被静默忽略(批量处理时规则可能不适用所有文件)
-4. **regexp2**: 使用 regexp2 而非标准库 regexp,支持高级模式(负向预查等)
+3. **regexp2**: 使用 regexp2,支持高级模式(负向预查等)
 
 ## 开发注意事项
 
 添加新功能时需考虑:
 - **新动作类型**: 在 `engine/types.go` 添加 ActionType,在 `engine/engine.go` 实现处理器
 - **新路径语法**: 更新 `path/parser.go` 的 parseSelector() 和 `path/navigator.go` 的 findArray()
-- **错误处理**: 使用 `fmt.Errorf("context: %w", err)` 包装错误; processor 会忽略 "not found" 错误
 
 ## 关键依赖
 
