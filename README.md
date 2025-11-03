@@ -1,6 +1,6 @@
 # yamleditor
 
-Kubernetes YAML 批量编辑工具,使用配置化规则进行精确修改。
+Kubernetes YAML 批量编辑工具,使用配置化规则进行修改。
 
 ## 特性
 
@@ -11,28 +11,27 @@ Kubernetes YAML 批量编辑工具,使用配置化规则进行精确修改。
 - **零特殊情况**：通过配置扩展,无需修改代码
 
 ## 目录结构
-目录结构
-     yamleditor/
-     ├── cmd/
-     │   └── yamleditor/
-     │       └── main.go              # CLI 入口
-     ├── pkg/
-     │   ├── path/
-     │   │   ├── parser.go            # 路径解析
-     │   │   ├── matcher.go           # 条件匹配
-     │   │   └── navigator.go         # YAML 树遍历
-     │   ├── engine/
-     │   │   ├── engine.go            # 操作引擎
-     │   │   ├── replace.go           # 替换操作
-     │   │   ├── delete.go            # 删除操作
-     │   │   └── regex.go             # 正则操作
-     │   ├── rule/
-     │   │   ├── loader.go            # 规则加载
-     │   │   └── types.go             # 规则定义
-     │   └── processor/
-     │       └── processor.go         # 批量处理逻辑
-     ├── go.mod
-     └── README.md
+  yamleditor/
+  ├── cmd/
+  │   └── yamleditor/
+  │       └── main.go              # CLI 入口
+  ├── pkg/
+  │   ├── path/
+  │   │   ├── parser.go            # 路径解析
+  │   │   ├── matcher.go           # 条件匹配
+  │   │   └── navigator.go         # YAML 树遍历
+  │   ├── engine/
+  │   │   ├── engine.go            # 操作引擎
+  │   │   ├── replace.go           # 替换操作
+  │   │   ├── delete.go            # 删除操作
+  │   │   └── regex.go             # 正则操作
+  │   ├── rule/
+  │   │   ├── loader.go            # 规则加载
+  │   │   └── types.go             # 规则定义
+  │   └── processor/
+  │       └── processor.go         # 批量处理逻辑
+  ├── go.mod
+  └── README.md
 
 
 ## 安装
