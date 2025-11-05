@@ -9,6 +9,7 @@ Kubernetes YAML 编辑工具,使用配置化规则进行批量修改。
 - **批量处理**：递归处理目录下所有 YAML 文件
 - **安全模式**：dry-run 预览变更,backup 自动备份
 - **零特殊情况**：通过配置扩展,无需修改代码
+- **regex_replace支持完整正则语法**: 使用github.com/dlclark/regexp2实现
 
 ## 目录结构
 ```text
@@ -73,7 +74,46 @@ yamleditor -c rules.yaml -i ./yamls/ --backup
 ```
 
 
-## 路径语法
+## 配置说明
+
+### 规则结构
+
+每条规则包含以下字段：
+
+| 字段 | 必需 | 类型 | 说明 |
+|------|------|------|------|
+| `action` | ✓ | string | 操作类型: replace/delete/regex_replace |
+| `path` | ✓ | string | YAML节点路径(见路径语法) |
+| `value` | * | any | 新值(replace与regex_replace需要) |
+| `pattern` | * | string | 正则表达式(regex_replace需要) |
+| `continue_on_not_found` | | bool | 路径未找到时不报错(默认false) |
+
+**说明**:
+- ✓ = 必需字段
+- \* = 特定操作需要
+- 空 = 可选字段
+
+**完整示例**:
+```yaml
+rules:
+  # replace操作
+  - action: replace
+    path: "spec.replicas"
+    value: 3
+    continue_on_not_found: true
+
+  # delete操作
+  - action: delete
+    path: "metadata.managedFields"
+
+  # regex_replace操作
+  - action: regex_replace
+    path: "containers[*].image"
+    pattern: 'old.com'
+    value: 'new.com'
+```
+
+### 路径语法
 
 | 语法 | 说明 | 示例 |
 |------|------|------|
@@ -83,57 +123,20 @@ yamleditor -c rules.yaml -i ./yamls/ --backup
 | `field[name=value]` | 精确匹配 | `containers[name=nginx]` |
 | `field[name=@pattern@]` | 正则匹配 | `env[name=@^xxx_.*$@]` |
 
-## 操作类型
+### 操作类型
 
-
-支持以下可选字段：
-
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `continue_on_not_found` | bool | false | 当路径未找到节点时是否继续处理（不报错） |
-
-**使用场景**: 批量处理多个文件时，某些规则可能不适用于所有文件。设置 `continue_on_not_found: true` 可忽略"未找到"错误，继续处理其他规则。
-
-```yaml
-rules:
-  # 找不到时继续（适用于可选字段）
-  - action: replace
-    path: "metadata.labels.optional-label"
-    value: "new-value"
-    continue_on_not_found: true
-
-  # 找不到时报错（默认行为，适用于必须存在的字段）
-  - action: replace
-    path: "metadata.name"
-    value: "new-name"
-```
-
-### replace
+#### replace
 替换节点（支持对象、字段、标量）:
 ```yaml
-# 替换整个对象
-- action: replace
-  path: spec.initContainers[name=old]
-  value:
-    name: new-container
-    image: new-image:v1
-
-# 修改字段值
-- action: replace
-  path: spec.replicas
-  value: 3
-
-# 使用正则匹配
+# 替换
 - action: replace
   path: volumes[name=@.*old.*@].name
   value: new-volume
 ```
 
 **说明**: `replace` 通过路径定位节点后,用 `value` 替换该节点。
-- 精确匹配: `[name=foo]`
-- 正则匹配: `[name=@pattern@]` (用 `@...@` 包裹正则表达式)
 
-### delete
+#### delete
 删除节点:
 ```yaml
 # 删除单个字段
@@ -145,7 +148,7 @@ rules:
   path: env[name=@^xxx_(?!(foo1|foo2)$).*@]
 ```
 
-### regex_replace
+#### regex_replace
 正则替换字符串内容:
 ```yaml
 - action: regex_replace
